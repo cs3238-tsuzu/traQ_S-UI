@@ -7,6 +7,18 @@ import {
   MyUserDetail,
   ChannelSubscribeLevel
 } from '@traptitech/traq'
+import { checkBadgeAPISupport } from '@/lib/util/browser'
+
+const isBadgingAPISupported = checkBadgeAPISupport()
+const updateBadge = async (unreadChannelsSet: Record<ChannelId, unknown>) => {
+  if (!isBadgingAPISupported) return
+  const unreadCount = Object.keys(unreadChannelsSet).length
+  if (unreadCount > 0) {
+    await navigator.setAppBadge(unreadCount)
+  } else {
+    await navigator.clearAppBadge()
+  }
+}
 
 export const mutations = defineMutations<S>()({
   setDetail(state: S, detail: MyUserDetail) {
@@ -23,13 +35,16 @@ export const mutations = defineMutations<S>()({
     state.unreadChannelsSet = Object.fromEntries(
       unreadChannels.map(unread => [unread.channelId, unread])
     )
+    updateBadge(state.unreadChannelsSet)
   },
   addUnreadChannel(state: S, unreadChannel: UnreadChannel) {
     if (!unreadChannel.channelId) throw 'addUnreadChannel: No Channel Id'
     Vue.set(state.unreadChannelsSet, unreadChannel.channelId, unreadChannel)
+    updateBadge(state.unreadChannelsSet)
   },
   deleteUnreadChannel(state: S, channelId: ChannelId) {
     Vue.delete(state.unreadChannelsSet, channelId)
+    updateBadge(state.unreadChannelsSet)
   },
 
   setStaredChannels(state: S, channelIds: ChannelId[]) {
